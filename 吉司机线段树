@@ -1,0 +1,99 @@
+```cpp
+#include <iostream>
+using namespace std;
+typedef long long LL;
+const int N = 1000010,INF = 1e9;
+int n,m;
+int a[N];
+struct segment_tree_node {
+	int l,r;
+	int mx,cnt,se;
+	LL sum;
+	int tag_min;
+}tr[4 * N];
+LL max (LL a,LL b) {
+	return a > b ? a : b;
+}
+void push_up (int u) {
+	tr[u].mx = max (tr[u << 1].mx,tr[u << 1 | 1].mx),tr[u].sum = tr[u << 1].sum + tr[u << 1 | 1].sum;
+	if (tr[u << 1].mx == tr[u << 1 | 1].mx) tr[u].cnt = tr[u << 1].cnt + tr[u << 1 | 1].cnt,tr[u].se = max (tr[u << 1].se,tr[u << 1 | 1].se);
+	else if (tr[u << 1].mx > tr[u << 1 | 1].mx) tr[u].cnt = tr[u << 1].cnt,tr[u].se = max (tr[u << 1].se,tr[u << 1 | 1].mx);
+	else tr[u].cnt = tr[u << 1 | 1].cnt,tr[u].se = max (tr[u << 1].mx,tr[u << 1 | 1].se);
+}
+void build_segment_tree (int u,int l,int r) {
+	if (l == r) {
+		tr[u] = {l,r,a[l],1,-INF,a[l],-1};
+		return ;
+	}
+	tr[u] = {l,r};
+	tr[u].tag_min = -1,tr[u].se = -INF;
+	int mid = l + r >> 1;
+	build_segment_tree (u << 1,l,mid),build_segment_tree (u << 1 | 1,mid + 1,r);
+	push_up (u);
+}
+void opt_min (int u,int val) {
+	if (tr[u].se < val && val < tr[u].mx) {
+		tr[u].sum -= (LL)tr[u].cnt * (tr[u].mx - val);
+		tr[u].mx = tr[u].tag_min = val;
+	}
+}
+void push_down (int u) {
+	if (tr[u].tag_min != -1) {
+		int val = tr[u].tag_min;
+		opt_min (u << 1,val),opt_min (u << 1 | 1,val);
+		tr[u].tag_min = -1;
+	}
+}
+void modify_min (int u,int l,int r,int val) {
+	if (val >= tr[u].mx) return ;
+	if (l <= tr[u].l && tr[u].r <= r && tr[u].se < val) {
+		opt_min (u,val);
+		return ;
+	}
+	push_down (u);
+	int mid = tr[u].l + tr[u].r >> 1;
+	if (l <= mid) modify_min (u << 1,l,r,val);
+	if (r >= mid + 1) modify_min (u << 1 | 1,l,r,val);
+	push_up (u);
+}
+int query_max (int u,int l,int r) {
+	if (l <= tr[u].l && tr[u].r <= r) return tr[u].mx;
+	push_down (u);
+	int mid = tr[u].l + tr[u].r >> 1;
+	int ans = -INF;
+	if (l <= mid) ans = max (ans,query_max (u << 1,l,r));
+	if (r >= mid + 1) ans = max (ans,query_max (u << 1 | 1,l,r));
+	return ans;
+}
+LL query_sum (int u,int l,int r) {
+	if (l <= tr[u].l && tr[u].r <= r) return tr[u].sum;
+	push_down (u);
+	int mid = tr[u].l + tr[u].r >> 1;
+	LL ans = 0;
+	if (l <= mid) ans += query_sum (u << 1,l,r);
+	if (r >= mid + 1) ans += query_sum (u << 1 | 1,l,r);
+	return ans;
+}
+int main () {
+	int T;
+	scanf ("%d",&T);
+	while (T--) {
+		scanf ("%d%d",&n,&m);
+		for (int i = 1;i <= n;i++) scanf ("%d",&a[i]);
+		build_segment_tree (1,1,n);
+		while (m--) {
+			int op,l,r;
+			scanf ("%d%d%d",&op,&l,&r);
+			if (!op) {
+				int x;
+				scanf ("%d",&x);
+				modify_min (1,l,r,x);
+			}
+			else if (op == 1) printf ("%d\n",query_max (1,l,r));
+			else printf ("%lld\n",query_sum (1,l,r));
+//			if (op >= 1) puts ("----------");
+		}
+	}
+	return 0;
+}
+```
